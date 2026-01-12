@@ -10,6 +10,12 @@ import secrets
 import time
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from .constants import (
+    DEFAULT_REQUIRED_FACTORS,
+    SESSION_TIMEOUT_SECONDS,
+    SESSION_CLEANUP_AGE_SECONDS,
+    MIN_TRUST_SCORE,
+)
 
 
 class AuthMethod(Enum):
@@ -24,7 +30,7 @@ class AuthMethod(Enum):
 class MFAProvider:
     """Multi-Factor Authentication Provider"""
     
-    def __init__(self, required_factors: int = 2):
+    def __init__(self, required_factors: int = DEFAULT_REQUIRED_FACTORS):
         """
         Initialize MFA provider
         
@@ -83,7 +89,7 @@ class MFAProvider:
         
         return success, session["completed_factors"]
     
-    def cleanup_expired_sessions(self, max_age: int = 300):
+    def cleanup_expired_sessions(self, max_age: int = SESSION_CLEANUP_AGE_SECONDS):
         """
         Remove expired authentication sessions
         
@@ -167,13 +173,13 @@ class Authenticator:
         
         session = self.active_sessions[access_token]
         
-        # Check session age (sessions expire after 1 hour by default)
-        if time.time() - session["timestamp"] > 3600:
+        # Check session age (sessions expire after SESSION_TIMEOUT_SECONDS)
+        if time.time() - session["timestamp"] > SESSION_TIMEOUT_SECONDS:
             del self.active_sessions[access_token]
             return False
         
         # Verify trust score is still acceptable
-        if session["trust_score"] < 0.5:
+        if session["trust_score"] < MIN_TRUST_SCORE:
             return False
         
         return True

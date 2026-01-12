@@ -9,6 +9,12 @@ import hashlib
 import time
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from .constants import (
+    MAX_PAYLOAD_SIZE_BYTES,
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_WINDOW_SECONDS,
+    REVERIFICATION_INTERVAL_SECONDS,
+)
 
 
 class VerificationLevel(Enum):
@@ -83,7 +89,7 @@ class IdentityVerifier:
         
         return verified, confidence
     
-    def require_reverification(self, identity_id: str, max_age: int = 300) -> bool:
+    def require_reverification(self, identity_id: str, max_age: int = REVERIFICATION_INTERVAL_SECONDS) -> bool:
         """
         Check if identity requires re-verification
         
@@ -146,7 +152,7 @@ class RequestVerifier:
             return False, "Invalid destination"
         
         # Validate request size
-        if len(str(payload)) > 1000000:  # 1MB limit
+        if len(str(payload)) > MAX_PAYLOAD_SIZE_BYTES:
             self._record_blocked(request_id, "Payload too large")
             return False, "Payload exceeds size limit"
         
@@ -183,10 +189,10 @@ class RequestVerifier:
         # Simple rate limiting check
         recent_requests = [
             r for r in self.request_history[-100:]
-            if r["source"] == source and time.time() - r["timestamp"] < 60
+            if r["source"] == source and time.time() - r["timestamp"] < RATE_LIMIT_WINDOW_SECONDS
         ]
         
-        if len(recent_requests) > 50:
+        if len(recent_requests) > RATE_LIMIT_REQUESTS:
             return True
         
         return False

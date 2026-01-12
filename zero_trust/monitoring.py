@@ -9,6 +9,7 @@ import time
 import json
 from typing import Dict, List, Optional
 from enum import Enum
+from .constants import FAILED_LOGIN_ALERT_THRESHOLD, ALERT_TIME_WINDOW_SECONDS
 
 
 class LogLevel(Enum):
@@ -178,10 +179,10 @@ class SecurityMonitor:
             recent_failures = self.audit_logger.query(
                 event_type=SecurityEvent.LOGIN_FAILURE,
                 principal=principal,
-                since=time.time() - 300,  # Last 5 minutes
+                since=time.time() - ALERT_TIME_WINDOW_SECONDS,
             )
             
-            if len(recent_failures) >= 5:
+            if len(recent_failures) >= FAILED_LOGIN_ALERT_THRESHOLD:
                 self.create_alert(
                     severity=LogLevel.CRITICAL,
                     message=f"Multiple failed login attempts for {principal}",
